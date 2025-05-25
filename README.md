@@ -1,0 +1,1 @@
+# platform-aap-vault-config
