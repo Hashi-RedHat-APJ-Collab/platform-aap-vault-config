@@ -1,0 +1,132 @@
+---
+# roles/vault_sign/tasks/main.yml
+
+# Ensure Vault CA certificate is installed
+- name: Check if Vault CA certificate exists
+  ansible.builtin.stat:
+    path: /etc/pki/ca-trust/source/anchors/vault-ca.crt
+  register: ca_stat
+
+- name: Fail if Vault CA certificate is missing
+  ansible.builtin.fail:
+    msg: "Vault CA certificate not found in /etc/pki/ca-trust/source/anchors"
+  when: not ca_stat.stat.exists
+
+# Debug: Echo the Vault CA certificate content to verify it
+- name: Display the Vault CA certificate content
+  ansible.builtin.command:
+    cmd: cat /etc/pki/ca-trust/source/anchors/vault-ca.crt
+  register: vault_ca_content
+  changed_when: false
+  failed_when: false
+
+- name: Show Vault CA certificate content
+  debug:
+    msg: "Vault CA certificate content: {{ vault_ca_content.stdout }}"
+
+# Verify if the certificate is valid with OpenSSL
+- name: Verify Vault CA certificate with OpenSSL
+  ansible.builtin.command:
+    cmd: openssl x509 -in /etc/pki/ca-trust/source/anchors/vault-ca.crt -text -noout
+  register: openssl_cert_verify
+  changed_when: false
+  failed_when: false
+
+- name: Show OpenSSL certificate verification result
+  debug:
+    msg: "OpenSSL certificate verification result: {{ openssl_cert_verify.stdout }}"
+
+# Install pip-system-certs to resolve SSL certificate issues
+- name: Install pip-system-certs to resolve SSL certificate issues
+  ansible.builtin.pip:
+    name: pip-system-certs
+    executable: /usr/bin/pip3
+
+# Debug: Check certificate trust
+- name: Check if the Vault CA is in the trust store
+  ansible.builtin.command: update-ca-trust list
+  register: ca_trust_check
+  changed_when: false
+  failed_when: false
+
+- name: Display Vault CA trust status
+  debug:
+    msg: "Vault CA trust store: {{ ca_trust_check.stdout }}"
+
+# Test Vault connectivity
+- name: Test Vault connectivity
+  ansible.builtin.uri:
+    url: "{{ vault_addr }}/v1/sys/health"
+    method: GET
+    return_content: true
+    validate_certs: true
+    ca_path: "/etc/pki/ca-trust/source/anchors/vault-ca.crt"
+  register: vault_health
+  retries: 4
+  delay: 5
+  timeout: 10
+
+- name: Debug response from Vault connectivity test
+  debug:
+    var: vault_health
+
+# Check if hvac Python library is installed
+- name: Check if hvac Python library is installed
+  ansible.builtin.command:
+    cmd: "/usr/bin/python3 -c 'import hvac'"
+  register: hvac_check
+  failed_when: hvac_check.rc != 0
+  changed_when: false
+
+- name: Fail if hvac library is not installed
+  ansible.builtin.fail:
+    msg: "hvac library is not installed in the Execution Environment."
+  when: hvac_check.rc != 0
+
+# Ensure VAULT_ADDR environment variable is set
+- name: Ensure VAULT_ADDR environment variable is set
+  ansible.builtin.assert:
+    that:
+      - vault_addr is defined
+      - vault_addr | length > 0
+    fail_msg: "VAULT_ADDR is not set or is empty!"
+
+# Ensure Vault authentication credentials are defined
+- name: Ensure Vault authentication credentials are defined
+  ansible.builtin.assert:
+    that:
+      - role_id is defined
+      - role_id | length > 0
+      - secret_id is defined
+      - secret_id | length > 0
+    fail_msg: "Vault AppRole authentication credentials (role_id or secret_id) are not set!"
+
+
+# Authenticate to Vault and Sign CSR (via Execution Environment)
+- name: Authenticate to Vault and Sign CSR
+  community.hashi_vault.vault_write:
+    url: "{{ vault_addr }}"
+    path: "pki/sign/{{ vault_pki_role }}"
+    data:
+      csr: "{{ remote_csr_data.content | b64decode }}"
+      common_name: "{{ inventory_hostname }}.{{ domain }}"
+      ttl: "720h"
+    auth_method: approle
+    role_id: "{{ role_id }}"  # This is passed in via AAP credentials
+    secret_id: "{{ secret_id }}"  # This is passed in via AAP credentials
+    validate_certs: true
+    ca_cert: "/etc/pki/ca-trust/source/anchors/vault-ca.crt"
+  register: signed_cert
+
+- name: Debug the signed certificate
+  debug:
+    msg: "{{ signed_cert.data.data.certificate }}"
+
+# Copy the signed certificate back to the target machine
+- name: Copy signed certificate back to the target machine
+  ansible.builtin.copy:
+    content: "{{ signed_cert.data.data.certificate }}"
+    dest: "/etc/vault.d/cert.pem"
+    mode: "0644"
+  delegate_to: "{{ target_hostname }}"
+  become: true
