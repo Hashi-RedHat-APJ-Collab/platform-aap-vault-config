@@ -1,0 +1,65 @@
+---
+  - name: Debug org_map
+    debug:
+      var: org_map
+
+  - name: create user 
+    ansible.platform.user:
+      username: "{{ item.name }}_admin"
+      password: "{{ app_org_admin_password }}"
+      gateway_hostname: "{{ aap_url }}"
+      gateway_username: "admin"
+      gateway_password: "{{ aap_password }}"
+      gateway_validate_certs: false
+      is_superuser: false
+    loop: "{{ aap_organizations }}"
+    register: created_users
+
+#   #this is a worksaround using api directly due to bug in the ansible.platform.user module for org association
+#   - name: "aap gateway authentication (block)"
+#     block:
+#       - name: "Get the Authentication Token for the future requests"
+#         ansible.builtin.uri:
+#           url: "{{ aap_url }}/api/gateway/v1/tokens/"
+#           user: "admin"
+#           password: "{{ aap_password }}"
+#           method: POST
+#           force_basic_auth: true
+#           validate_certs: false
+#           status_code: 201
+#         register: authtoken_res
+#       - name: "Set the oauth token to be used since now"
+#         ansible.builtin.set_fact:
+#           aap_oauthtoken: "{{ authtoken_res.json.token }}"
+#           aap_oauthtoken_url: "{{ authtoken_res.json.url }}"    
+#     no_log: false
+#     when: aap_oauthtoken is not defined
+#     tags:
+#       - always 
+
+#  # debug created_users
+#   - name: Debug created_users
+#     debug:
+#       var: created_users
+
+#   - name: Create username to ID mapping
+#     ansible.builtin.set_fact:
+#       user_map: "{{ user_map | default({}) | combine({item.invocation.module_args.username: item.id}) }}"
+#     loop: "{{ created_users.results }}"
+ 
+#  # need to get the user id and pass the id into instances for org association
+#   - name: "associate users with organizations"
+#     ansible.builtin.uri:
+#       url: "{{ aap_url }}/api/gateway/v1/organizations/{{org_map[item.name]}}/users/associate/"
+#       headers:
+#         Authorization: "Bearer {{ aap_oauthtoken }}"
+#       method: POST
+#       body_format: json
+#       body:
+#         instances: [ "{{ user_map[item.name ~ '_admin'] }}" ]
+#       validate_certs: false
+#       status_code: 204
+#     loop: "{{ aap_organizations }}"
+#     register: org_association
+#     no_log: false
+

@@ -1,0 +1,15 @@
+- name: Synchonize project
+  ansible.controller.project:
+    name: "{{ projects[0].name }}"
+    description: "{{ projects[0].description }}"
+    organization: "{{ item.name }}"
+    scm_url: "{{ projects[0].scm_url }}"
+    scm_type: "{{ projects[0].scm_type }}"
+    scm_branch: "{{ projects[0].scm_branch }}"
+    state: "{{ projects[0].state }}"
+    controller_host: "{{ aap_url }}"                    # URL of your AAP instance
+    controller_username: "admin"                        # AAP username
+    controller_password: "{{ aap_password }}"           # AAP password
+    validate_certs: false 
+  loop: "{{ aap_organizations }}"
+  register: synced_projects

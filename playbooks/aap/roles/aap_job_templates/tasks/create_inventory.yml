@@ -1,0 +1,27 @@
+# create ansible aap inventory using ansible controller collection
+- name: Create AAP inventory
+  ansible.controller.inventory:
+    name: "Demo Inventory"
+    state: "present"
+    organization: "{{ item.name }}"
+    controller_host: "{{ aap_url }}"                    # URL of your AAP instance
+    controller_username: "admin"                        # AAP username
+    controller_password: "{{ aap_password }}"           # AAP password
+    validate_certs: false
+  loop: "{{ aap_organizations }}"
+  register: created_inventory
+
+# - name: Debug created_inventory
+#   debug:
+#     var: created_inventory
+
+- name: Extract organization and inventory ID into a map
+  set_fact:
+    org_inventory_map: >-
+      {{ org_inventory_map | default({}) | combine({ item.item.name: item.id | string }) }}
+  loop: "{{ created_inventory.results }}"
+  when: item.id is defined
+
+# - name: Debug org_inventory_map
+#   debug:
+#     var: org_inventory_map

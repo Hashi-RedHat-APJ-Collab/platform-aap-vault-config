@@ -1,0 +1,9 @@
+---
+- name: Include tasks to configure machine credentials
+  include_tasks: machine_credentials.yml
+
+- name: Include tasks to configure Inventory
+  include_tasks: create_inventory.yml
+
+- name: Include tasks to configure Job Templates
+  include_tasks: configure_job_templates.yml

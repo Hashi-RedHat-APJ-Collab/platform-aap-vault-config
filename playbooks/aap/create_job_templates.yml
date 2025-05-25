@@ -1,0 +1,10 @@
+---
+- name: Create Job templates in Organization
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - vars/aap_orgs_and_users.yml
+  tasks:
+    - name: Include role tasks
+      include_role:
+        name: aap_job_templates
