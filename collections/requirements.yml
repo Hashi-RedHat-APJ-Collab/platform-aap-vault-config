@@ -1,4 +1,4 @@
----
-collections:
-  - name: ansible.controller
-  - name: community.hashi_vault
+# ---
+# collections:
+#   - name: ansible.controller
+#   - name: community.hashi_vault
