@@ -1,6 +1,4 @@
 ---
 collections:
-  - name: ansible.platform
-  - name: ansible.hub
   - name: ansible.controller
-  - name: ansible.eda
+    version: 4.6.10
