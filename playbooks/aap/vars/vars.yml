@@ -1,7 +1,7 @@
 ---
 # AAP Gateway URL
-aap_url: "https://aap.demo.local"
-
+aap_url: "https://aap.demo.local/"
+controller_host: "https://aap.demo.local/"
 # Hashicorp Vault Public URL
 vault_url: "https://skoaap-public-vault-8683511a.d19fbab7.z1.hashicorp.cloud:8200"
 
