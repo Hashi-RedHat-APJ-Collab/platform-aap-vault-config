@@ -41,18 +41,11 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----"
 
 # Organizations and Users
-aap_organizations:
+aap_tenants:
 - name: terraformtitans
   state: exists
-  namespace: "terraformtitans"
+  vault_namespace: "terraformtitans"
 - name: vaultvillagers
   state: exists
-  namespace: "vaultvillagers"
+  vault_namespace: "vaultvillagers"
 
-projects:
-  - name: "minecraft_config"
-    description: "Mindcraft configuration project"
-    state: exists
-    scm_type: "git"
-    scm_url: "https://github.com/hashi-demo-lab/sko_aap_deployment_aws"
-    scm_branch: "main"
